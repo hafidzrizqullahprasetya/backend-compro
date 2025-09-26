@@ -13,12 +13,14 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->integer('client_id');
+            $table->unsignedBigInteger('client_id');
             $table->string('name');
             $table->text('description');
             $table->string('image_path');
             $table->decimal('price', 12, 2);
             $table->timestamps();
+
+            $table->foreign('client_id')->references('id')->on('our_clients')->onDelete('cascade');
         });
     }
 
