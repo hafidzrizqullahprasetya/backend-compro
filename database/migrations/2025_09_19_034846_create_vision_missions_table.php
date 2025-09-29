@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('vision_missions', function (Blueprint $table) {
             $table->id();
-            $table->text('vision');
-            $table->text('mission');
+            $table->text('vision')->nullable();
+            $table->text('mission')->nullable();
             $table->timestamps();
         });
     }

@@ -9,3 +9,8 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::get('/vision-mission', [VisionMissionController::class, 'index']);
+Route::get('/vision-mission/{id}', [VisionMissionController::class, 'show']);
+Route::post('/vision-mission', [VisionMissionController::class, 'store']);
+Route::put('/vision-mission/{id}', [VisionMissionController::class, 'update']);
+Route::delete('/vision-mission/{id}', [VisionMissionController::class, 'destroy']);
+
