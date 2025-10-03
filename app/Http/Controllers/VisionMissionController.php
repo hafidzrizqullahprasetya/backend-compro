@@ -25,6 +25,11 @@ class VisionMissionController extends Controller
 
     public function store(Request $request)
     {
+        $request->validate([
+        'vision' => 'required_without:mission|string',
+        'mission' => 'required_without:vision|string',
+        ]);
+
         $visionMission = VisionMission::create($request->all());
         return response()->json([
             "message" => "Vision and Mission created successfully",
@@ -34,6 +39,12 @@ class VisionMissionController extends Controller
 
     public function update(Request $request, $id)
     {
+        $request->validate([
+            'vision' => 'sometimes|required|string',
+            'mission' => 'sometimes|required|string',
+        ]);
+
+
         $visionMission = VisionMission::find($id);
         if ($visionMission) {
             $visionMission->update($request->all());
