@@ -15,7 +15,7 @@ class Product extends Model
         return $this->belongsTo(OurClient::class, 'client_id');
     }   
 
-    public function imagePath(): Attribute{
+    public function imageUrl(): Attribute{
         return Attribute::make(
             get: fn($value) => asset('storage/products/' . $value),
         );

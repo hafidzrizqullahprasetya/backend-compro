@@ -5,12 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
     public function index()
     {   
-        $products = Product::all();
+        $products = Product::with('client')->get(); // Include relasi client
         return response()->json($products);
     }
 
@@ -53,34 +54,51 @@ class ProductController extends Controller
     
 
     public function update(Request $request, $id)
-    {
-        $request->validate([
-            'client_id' => 'required|integer',
-            'name' => 'required|string',
-            'price' => 'required|numeric',
-            'description' => 'required|string',
-            'image_path' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:5120'
-        ]);
+{
+    Log::info('Update called for ID: ' . $id);
+    Log::info('Request data:', $request->all()); // Tambah ini
+    
+    $product = Product::find($id);
+    if (!$product) {
+        return response()->json(['message' => 'Product not found'], 404);
+    }
 
-        $product = Product::find($id);
-        if ($request->hasFile('image')) {
-            if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
-                Storage::disk('public')->delete($product->image_path);
-            }
-            
-            $imagePath = $request->file('image')->store('products', 'public');
-            $product->image_path = $imagePath;
+    $request->validate([
+        'client_id' => 'sometimes|integer',
+        'name' => 'sometimes|string',
+        'price' => 'sometimes|numeric',
+        'description' => 'sometimes|string',
+        'image_path' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:5120'
+    ]);
+
+    // HAPUS BARIS INI - DUPLIKASI!
+    // $product = Product::find($id);
+
+    // Handle file upload
+    if ($request->hasFile('image_path')) {
+        if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
+            Storage::disk('public')->delete($product->image_path);
         }
 
-        // Update other fields
-        $product->fill($request->only(['client_id', 'name', 'price', 'description']));
-        $product->save();
-
-        return response()->json([
-            'message' => 'Product updated successfully',
-            'data' => $product
-        ]);
+        $imagePath = $request->file('image_path')->store('products', 'public');
+        $product->image_path = $imagePath;
     }
+
+    // Log data yang akan diupdate
+    $updateData = $request->only(['client_id', 'name', 'price', 'description']);
+    Log::info('Data to update:', $updateData);
+
+    $product->fill($updateData);
+    $saved = $product->save();
+    Log::info('Save result:', ['saved' => $saved]);
+    
+    Log::info('Product after update:', $product->fresh()->toArray());
+
+    return response()->json([
+        'message' => 'Product updated successfully',
+        'data' => $product->fresh() // Fresh data dari database
+    ]);
+}
 
     public function destroy($id)
     {
@@ -96,6 +114,4 @@ class ProductController extends Controller
             return response()->json(['message' => 'Product not found'], 404);
         }
     }    
-
-
 }
