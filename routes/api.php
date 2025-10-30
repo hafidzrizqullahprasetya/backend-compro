@@ -8,6 +8,8 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\OurClientController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\TestimonialController;
+use App\Http\Controllers\HeroController;
+use App\Http\Controllers\CompanyHistoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -109,6 +111,34 @@ Route::get('/testimonial', [TestimonialController::class, 'index']);
 
 /*
 |--------------------------------------------------------------------------
+| Hero Routes
+|--------------------------------------------------------------------------
+| Mengelola data hero section (singleton pattern).
+|
+| GET /hero                 -> Menampilkan data hero section (public)
+| PUT /hero                 -> Mengupdate hero section (auth:sanctum)
+|
+*/
+Route::get('/hero', [HeroController::class, 'index']);
+
+/*
+|--------------------------------------------------------------------------
+| Company History Routes
+|--------------------------------------------------------------------------
+| Menampilkan dan mengelola riwayat perusahaan.
+|
+| GET /company-history          -> Menampilkan seluruh riwayat (public)
+| GET /company-history/{id}     -> Menampilkan detail riwayat
+| POST /company-history         -> Menambahkan riwayat baru (auth:sanctum)
+| PUT /company-history/{id}     -> Mengupdate riwayat (auth:sanctum)
+| DELETE /company-history/{id}  -> Menghapus riwayat (auth:sanctum)
+|
+*/
+Route::get('/company-history', [CompanyHistoryController::class, 'index']);
+Route::get('/company-history/{id}', [CompanyHistoryController::class, 'show']);
+
+/*
+|--------------------------------------------------------------------------
 | Protected Routes (auth:sanctum)
 |--------------------------------------------------------------------------
 | Seluruh route di bawah grup ini hanya bisa diakses setelah login.
@@ -146,4 +176,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/testimonial', [TestimonialController::class, 'store']);
     Route::put('/testimonial/{id}', [TestimonialController::class, 'update']);
     Route::delete('/testimonial/{id}', [TestimonialController::class, 'destroy']);
+
+    // Hero Routes
+    Route::post('/hero', [HeroController::class, 'update']); // For multipart/form-data
+    Route::put('/hero', [HeroController::class, 'update']);
+
+    // Company History Routes
+    Route::post('/company-history', [CompanyHistoryController::class, 'store']);
+    Route::put('/company-history/{id}', [CompanyHistoryController::class, 'update']);
+    Route::delete('/company-history/{id}', [CompanyHistoryController::class, 'destroy']);
 });
