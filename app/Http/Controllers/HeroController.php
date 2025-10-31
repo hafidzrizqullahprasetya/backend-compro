@@ -42,7 +42,7 @@ class HeroController extends Controller
             'customers' => 'sometimes|integer|min:0',
             'experience_years' => 'sometimes|integer|min:0',
             'trust_years' => 'sometimes|integer|min:0',
-            'background' => 'sometimes|image|mimes:jpeg,png,jpg,gif,webp|max:10240', // max 10MB
+            'background' => 'sometimes|image|mimes:jpeg,png,jpg,gif,webp|max:102400', // max 100MB
         ]);
 
         // Handle background image upload

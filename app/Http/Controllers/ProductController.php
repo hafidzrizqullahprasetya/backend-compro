@@ -203,7 +203,7 @@ class ProductController extends Controller
             'name' => 'required|string',
             'price' => 'required|numeric',
             'description' => 'required|string',
-            'image_path' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:5120'
+            'image_path' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:102400' // 100MB in KB
         ]);
 
         $imagePath = $request->file('image_path')->store('products', 'public');
@@ -337,7 +337,7 @@ class ProductController extends Controller
             'name' => 'sometimes|string',
             'price' => 'sometimes|numeric',
             'description' => 'sometimes|string',
-            'image_path' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:5120'
+            'image_path' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:102400' // 100MB in KB
         ]);
 
         if ($request->hasFile('image_path')) {

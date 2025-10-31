@@ -10,6 +10,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\TestimonialController;
 use App\Http\Controllers\HeroController;
 use App\Http\Controllers\CompanyHistoryController;
+use App\Http\Controllers\SiteSettingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -139,6 +140,18 @@ Route::get('/company-history/{id}', [CompanyHistoryController::class, 'show']);
 
 /*
 |--------------------------------------------------------------------------
+| Site Settings Routes
+|--------------------------------------------------------------------------
+| Mengelola pengaturan situs (nama perusahaan, logo, judul section).
+|
+| GET /site-settings           -> Menampilkan pengaturan situs (public)
+| PUT /site-settings           -> Mengupdate pengaturan situs (auth:sanctum)
+|
+*/
+Route::get('/site-settings', [SiteSettingController::class, 'index']);
+
+/*
+|--------------------------------------------------------------------------
 | Protected Routes (auth:sanctum)
 |--------------------------------------------------------------------------
 | Seluruh route di bawah grup ini hanya bisa diakses setelah login.
@@ -185,4 +198,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/company-history', [CompanyHistoryController::class, 'store']);
     Route::put('/company-history/{id}', [CompanyHistoryController::class, 'update']);
     Route::delete('/company-history/{id}', [CompanyHistoryController::class, 'destroy']);
+
+    // Site Settings Routes
+    Route::post('/site-settings', [SiteSettingController::class, 'update']); // For multipart/form-data
+    Route::put('/site-settings', [SiteSettingController::class, 'update']);
 });
