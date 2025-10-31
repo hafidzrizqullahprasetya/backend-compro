@@ -203,23 +203,34 @@ class ProductController extends Controller
             'name' => 'required|string',
             'price' => 'required|numeric',
             'description' => 'required|string',
-            'image_path' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:102400' // 100MB in KB
+            'image_path' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:102400', // 100MB in KB
+            'images' => 'nullable|array',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg,webp|max:102400',
         ]);
 
         $imagePath = $request->file('image_path')->store('products', 'public');
 
-        $product = Product::create([
-        'client_id' => $request->client_id,
-        'name' => $request->name,
-        'price' => $request->price,
-        'description' => $request->description,
-        'image_path' => $imagePath,
-    ]);
+        $imagesPaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $path = $file->store('products', 'public');
+                $imagesPaths[] = $path;
+            }
+        }
 
-    return response()->json([
-        'message' => 'Product created successfully',
-        'data' => $product
-    ], 201);
+        $product = Product::create([
+            'client_id' => $request->client_id,
+            'name' => $request->name,
+            'price' => $request->price,
+            'description' => $request->description,
+            'image_path' => $imagePath,
+            'images' => $imagesPaths,
+        ]);
+
+        return response()->json([
+            'message' => 'Product created successfully',
+            'data' => $product
+        ], 201);
     }
 
     /**
@@ -337,9 +348,13 @@ class ProductController extends Controller
             'name' => 'sometimes|string',
             'price' => 'sometimes|numeric',
             'description' => 'sometimes|string',
-            'image_path' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:102400' // 100MB in KB
+            'image_path' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:102400', // 100MB in KB
+            'images' => 'nullable|array',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg,webp|max:102400',
+            'deleted_images' => 'nullable|array', // Array of paths to delete
         ]);
 
+        // Handle main image upload
         if ($request->hasFile('image_path')) {
             if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
                 Storage::disk('public')->delete($product->image_path);
@@ -347,6 +362,39 @@ class ProductController extends Controller
 
             $imagePath = $request->file('image_path')->store('products', 'public');
             $product->image_path = $imagePath;
+        }
+
+        // Handle multiple images upload
+        if ($request->hasFile('images')) {
+            $existingImages = $product->images ?? [];
+            $newImages = [];
+
+            foreach ($request->file('images') as $file) {
+                $path = $file->store('products', 'public');
+                $newImages[] = $path;
+            }
+
+            // Merge with existing images
+            $product->images = array_merge($existingImages, $newImages);
+        }
+
+        // Handle deleting specific images
+        if ($request->has('deleted_images') && is_array($request->deleted_images)) {
+            $existingImages = $product->images ?? [];
+
+            foreach ($request->deleted_images as $pathToDelete) {
+                // Remove from array
+                $existingImages = array_filter($existingImages, function($path) use ($pathToDelete) {
+                    return $path !== $pathToDelete;
+                });
+
+                // Delete file from storage
+                if (Storage::disk('public')->exists($pathToDelete)) {
+                    Storage::disk('public')->delete($pathToDelete);
+                }
+            }
+
+            $product->images = array_values($existingImages); // Re-index array
         }
 
         $updateData = $request->only(['client_id', 'name', 'price', 'description']);
