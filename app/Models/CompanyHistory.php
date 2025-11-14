@@ -3,9 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\StorageImageTrait;
+use App\Traits\ClearsLandingPageCache;
 
 class CompanyHistory extends Model
 {
+    use StorageImageTrait, ClearsLandingPageCache;
+    
     protected $fillable = [
         'tahun',
         'judul',
@@ -23,26 +27,13 @@ class CompanyHistory extends Model
 
     public function getImageUrlAttribute()
     {
-        if ($this->image_path) {
-            // Check if it's already a full URL
-            if (filter_var($this->image_path, FILTER_VALIDATE_URL)) {
-                return $this->image_path;
-            }
-            // Otherwise, return storage URL
-            return asset('storage/' . $this->image_path);
-        }
-        return null;
+        return $this->buildImageUrl($this->image_path);
     }
 
     public function getImageUrlsAttribute()
     {
         if ($this->images && is_array($this->images)) {
-            return array_map(function ($path) {
-                if (filter_var($path, FILTER_VALIDATE_URL)) {
-                    return $path;
-                }
-                return asset('storage/' . $path);
-            }, $this->images);
+            return array_map(fn($path) => $this->buildImageUrl($path), $this->images);
         }
         return [];
     }

@@ -4,9 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use App\Traits\StorageImageTrait;
+use App\Traits\ClearsLandingPageCache;
 
 class OurClient extends Model
 {
+    use StorageImageTrait, ClearsLandingPageCache;
+    
     protected $fillable = [
         'client_name',
         'institution',
@@ -18,7 +22,7 @@ class OurClient extends Model
     protected function logoUrl(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->logo_path ? (str_starts_with($this->logo_path, 'http') ? $this->logo_path : asset('storage/' . $this->logo_path)) : null,
+            get: fn () => $this->buildImageUrl($this->logo_path),
         );
     }
 }

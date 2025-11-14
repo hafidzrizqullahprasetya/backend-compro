@@ -3,9 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\StorageImageTrait;
+use App\Traits\ClearsLandingPageCache;
 
 class SiteSetting extends Model
 {
+    use StorageImageTrait, ClearsLandingPageCache;
+    
     protected $fillable = [
         'company_name',
         'company_logo',
@@ -29,14 +33,6 @@ class SiteSetting extends Model
 
     public function getCompanyLogoUrlAttribute()
     {
-        if ($this->company_logo) {
-            // Check if it's already a full URL
-            if (filter_var($this->company_logo, FILTER_VALIDATE_URL)) {
-                return $this->company_logo;
-            }
-            // Otherwise, return storage URL
-            return asset('storage/' . $this->company_logo);
-        }
-        return null;
+        return $this->buildImageUrl($this->company_logo);
     }
 }

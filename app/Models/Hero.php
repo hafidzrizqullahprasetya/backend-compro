@@ -3,9 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\StorageImageTrait;
+use App\Traits\ClearsLandingPageCache;
 
 class Hero extends Model
 {
+    use StorageImageTrait, ClearsLandingPageCache;
+    
     protected $fillable = [
         'background',
         'backgrounds',
@@ -26,26 +30,13 @@ class Hero extends Model
 
     public function getBackgroundUrlAttribute()
     {
-        if ($this->background) {
-            // If it's already a full URL (http/https), return as is
-            if (filter_var($this->background, FILTER_VALIDATE_URL)) {
-                return $this->background;
-            }
-            // Otherwise, return storage URL
-            return asset('storage/' . $this->background);
-        }
-        return null;
+        return $this->buildImageUrl($this->background);
     }
 
     public function getBackgroundUrlsAttribute()
     {
         if ($this->backgrounds && is_array($this->backgrounds)) {
-            return array_map(function ($path) {
-                if (filter_var($path, FILTER_VALIDATE_URL)) {
-                    return $path;
-                }
-                return asset('storage/' . $path);
-            }, $this->backgrounds);
+            return array_map(fn($path) => $this->buildImageUrl($path), $this->backgrounds);
         }
         return [];
     }

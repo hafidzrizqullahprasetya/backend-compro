@@ -11,6 +11,7 @@ use App\Http\Controllers\TestimonialController;
 use App\Http\Controllers\HeroController;
 use App\Http\Controllers\CompanyHistoryController;
 use App\Http\Controllers\SiteSettingController;
+use App\Http\Controllers\LandingPageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,6 +40,18 @@ use App\Http\Controllers\SiteSettingController;
 */
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+
+/*
+|--------------------------------------------------------------------------
+| Landing Page Route (Combined Data)
+|--------------------------------------------------------------------------
+| New endpoint untuk mendapatkan semua data landing page dalam satu request.
+| Ini akan meningkatkan performa dengan mengurangi jumlah HTTP requests.
+|
+| GET /landing-page     -> Menampilkan semua data landing page (public)
+|
+*/
+Route::get('/landing-page', [LandingPageController::class, 'index']);
 
 /*
 |--------------------------------------------------------------------------

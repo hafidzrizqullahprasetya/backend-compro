@@ -4,10 +4,16 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Hero;
-use Illuminate\Support\Facades\Storage;
+use App\Services\StorageService;
 
 class HeroController extends Controller
 {
+    protected $storageService;
+
+    public function __construct(StorageService $storageService)
+    {
+        $this->storageService = $storageService;
+    }
     public function index()
     {
         $heroes = Hero::all();
@@ -54,8 +60,7 @@ class HeroController extends Controller
             $newBackgrounds = [];
 
             foreach ($request->file('backgrounds') as $file) {
-                $path = $file->store('heroes', 'public');
-                $newBackgrounds[] = $path;
+                $newBackgrounds[] = $this->storageService->upload($file, 'heroes');
             }
 
             // Merge with existing backgrounds
@@ -73,9 +78,7 @@ class HeroController extends Controller
                 });
 
                 // Delete file from storage
-                if (Storage::disk('public')->exists($pathToDelete)) {
-                    Storage::disk('public')->delete($pathToDelete);
-                }
+                $this->storageService->delete($pathToDelete);
             }
 
             $hero->backgrounds = array_values($existingBackgrounds); // Re-index array
@@ -99,6 +102,9 @@ class HeroController extends Controller
 
         $hero->fill($updateData);
         $hero->save();
+
+        // Clear landing page cache
+        cache()->forget('landing_page_data');
 
         return response()->json([
             'message' => 'Hero updated successfully',

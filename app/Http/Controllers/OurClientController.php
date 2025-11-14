@@ -4,10 +4,16 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\OurClient;
-use Illuminate\Support\Facades\Storage;
+use App\Services\StorageService;
 
 class OurClientController extends Controller
 {
+    protected $storageService;
+
+    public function __construct(StorageService $storageService)
+    {
+        $this->storageService = $storageService;
+    }
     /**
      * @OA\Get(
      *     path="/api/our-client",
@@ -168,10 +174,11 @@ class OurClientController extends Controller
         $request->validate([
             'client_name' => 'required|string',
             'institution' => 'required|string',
-            'logo_path' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:102400' // 100MB in KB
+            'logo_path' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:102400' // 100MB in KB
         ]);
 
-        $logoPath = $request->file('logo_path')->store('ourClients', 'public');
+        // Upload logo using StorageService
+        $logoPath = $this->storageService->upload($request->file('logo_path'), 'ourClients');
 
         $client = OurClient::create([
             'client_name' => $request->client_name,
@@ -284,16 +291,15 @@ class OurClientController extends Controller
         $request->validate([
             'client_name' => 'required|string',
             'institution' => 'required|string',
-            'logo_path' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:102400' // 100MB in KB
+            'logo_path' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg,webp|max:102400' // 100MB in KB
         ]);
 
         if ($request->hasFile('logo_path')) {
-            if ($client->logo_path && Storage::disk('public')->exists($client->logo_path)) {
-                Storage::disk('public')->delete($client->logo_path);
+            if ($client->logo_path) {
+                // Delete old logo from storage
+                $this->storageService->delete($client->logo_path);
             }
-
-            $logoPath = $request->file('logo_path')->store('ourClients', 'public');
-            $client->logo_path = $logoPath;
+            $client->logo_path = $this->storageService->upload($request->file('logo_path'), 'ourClients');
         }
 
         $updateData = $request->only(['client_name', 'institution']);
@@ -348,8 +354,9 @@ class OurClientController extends Controller
     {
         $client = OurClient::find($id);
         if ($client) {
-            if ($client->logo_path && Storage::disk('public')->exists($client->logo_path)) {
-                Storage::disk('public')->delete($client->logo_path);
+            // Delete logo from storage if exists
+            if ($client->logo_path) {
+                $this->storageService->delete($client->logo_path);
             }
 
             $client->delete();

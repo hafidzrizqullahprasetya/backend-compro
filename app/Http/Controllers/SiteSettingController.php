@@ -4,11 +4,17 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\SiteSetting;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use App\Services\StorageService;
 
 class SiteSettingController extends Controller
 {
+    protected $storageService;
+
+    public function __construct(StorageService $storageService)
+    {
+        $this->storageService = $storageService;
+    }
     /**
      * Display the site settings (singleton).
      */
@@ -81,11 +87,10 @@ class SiteSettingController extends Controller
         if ($request->hasFile('company_logo')) {
             // Delete old logo if exists
             if ($settings->company_logo) {
-                Storage::disk('public')->delete($settings->company_logo);
+                $this->storageService->delete($settings->company_logo);
             }
 
-            $logoPath = $request->file('company_logo')->store('logos', 'public');
-            $settings->company_logo = $logoPath;
+            $settings->company_logo = $this->storageService->upload($request->file('company_logo'), 'logos');
         }
 
         // Update text fields
@@ -114,6 +119,9 @@ class SiteSettingController extends Controller
         }
 
         $settings->save();
+
+        // Clear landing page cache
+        cache()->forget('landing_page_data');
 
         return response()->json([
             'message' => 'Settings updated successfully',

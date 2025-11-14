@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Product;
-use Illuminate\Support\Facades\Storage;
+use App\Services\StorageService;
 
 /**
  * @OA\Tag(
@@ -14,6 +14,12 @@ use Illuminate\Support\Facades\Storage;
  */
 class ProductController extends Controller
 {
+    protected $storageService;
+
+    public function __construct(StorageService $storageService)
+    {
+        $this->storageService = $storageService;
+    }
     /**
      * @OA\Get(
      *     path="/api/product",
@@ -199,22 +205,22 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'client_id' => 'required|integer',
+            'client_id' => 'nullable|integer|exists:our_clients,id',
             'name' => 'required|string',
             'price' => 'required|numeric',
             'description' => 'required|string',
-            'image_path' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:102400', // 100MB in KB
+            'image_path' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:102400', // 100MB in KB
             'images' => 'nullable|array',
             'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg,webp|max:102400',
         ]);
 
-        $imagePath = $request->file('image_path')->store('products', 'public');
+        // Upload main image using StorageService
+        $imagePath = $this->storageService->upload($request->file('image_path'), 'products');
 
         $imagesPaths = [];
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $file) {
-                $path = $file->store('products', 'public');
-                $imagesPaths[] = $path;
+                $imagesPaths[] = $this->storageService->upload($file, 'products');
             }
         }
 
@@ -226,6 +232,9 @@ class ProductController extends Controller
             'image_path' => $imagePath,
             'images' => $imagesPaths,
         ]);
+
+        // Clear landing page cache
+        cache()->forget('landing_page_data');
 
         return response()->json([
             'message' => 'Product created successfully',
@@ -344,24 +353,23 @@ class ProductController extends Controller
         }
 
         $request->validate([
-            'client_id' => 'sometimes|integer',
+            'client_id' => 'nullable|integer|exists:our_clients,id',
             'name' => 'sometimes|string',
             'price' => 'sometimes|numeric',
             'description' => 'sometimes|string',
-            'image_path' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:102400', // 100MB in KB
+            'image_path' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg,webp|max:102400', // 100MB in KB
             'images' => 'nullable|array',
             'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg,webp|max:102400',
-            'deleted_images' => 'nullable|array', // Array of paths to delete
+            'deleted_images' => 'nullable|array', // Array of public IDs to delete
         ]);
 
         // Handle main image upload
         if ($request->hasFile('image_path')) {
-            if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
-                Storage::disk('public')->delete($product->image_path);
+            if ($product->image_path) {
+                // Delete old image from storage
+                $this->storageService->delete($product->image_path);
             }
-
-            $imagePath = $request->file('image_path')->store('products', 'public');
-            $product->image_path = $imagePath;
+            $product->image_path = $this->storageService->upload($request->file('image_path'), 'products');
         }
 
         // Handle multiple images upload
@@ -370,8 +378,7 @@ class ProductController extends Controller
             $newImages = [];
 
             foreach ($request->file('images') as $file) {
-                $path = $file->store('products', 'public');
-                $newImages[] = $path;
+                $newImages[] = $this->storageService->upload($file, 'products');
             }
 
             // Merge with existing images
@@ -388,10 +395,8 @@ class ProductController extends Controller
                     return $path !== $pathToDelete;
                 });
 
-                // Delete file from storage
-                if (Storage::disk('public')->exists($pathToDelete)) {
-                    Storage::disk('public')->delete($pathToDelete);
-                }
+                // Delete from storage
+                $this->storageService->delete($pathToDelete);
             }
 
             $product->images = array_values($existingImages); // Re-index array
@@ -400,6 +405,9 @@ class ProductController extends Controller
         $updateData = $request->only(['client_id', 'name', 'price', 'description']);
         $product->fill($updateData);
         $product->save();
+
+        // Clear landing page cache
+        cache()->forget('landing_page_data');
 
         return response()->json([
             'message' => 'Product updated successfully',
@@ -449,11 +457,23 @@ class ProductController extends Controller
     {
         $product = Product::find($id);
         if ($product) {
-            if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
-                Storage::disk('public')->delete($product->image_path);
+            // Delete main image from storage if exists
+            if ($product->image_path) {
+                $this->storageService->delete($product->image_path);
+            }
+
+            // Delete additional images from storage if exist
+            if ($product->images && is_array($product->images)) {
+                foreach ($product->images as $path) {
+                    $this->storageService->delete($path);
+                }
             }
 
             $product->delete();
+
+            // Clear landing page cache
+            cache()->forget('landing_page_data');
+
             return response()->json(['message' => 'Product deleted successfully']);
         } else {
             return response()->json(['message' => 'Product not found'], 404);

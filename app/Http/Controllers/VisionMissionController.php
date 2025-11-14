@@ -32,7 +32,7 @@ class VisionMissionController extends Controller
      * )
      */
     public function index()
-    {   
+    {
         $visionMissions = VisionMission::all();
         return response()->json($visionMissions);
     }
@@ -124,6 +124,10 @@ class VisionMissionController extends Controller
         $visionMission = VisionMission::first();
         if ($visionMission) {
             $visionMission->update($request->all());
+
+            // Clear landing page cache
+            cache()->forget('landing_page_data');
+
             return response()->json([
                 "message" => "Vision and Mission updated successfully",
                 "data" => $visionMission

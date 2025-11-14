@@ -141,6 +141,10 @@ class ContactController extends Controller
         $contact = Contact::first();
         if ($contact) {
             $contact->update($request->all());
+
+            // Clear landing page cache
+            cache()->forget('landing_page_data');
+
             return response()->json([
                 "message" => "Contact updated successfully",
                 "data" => $contact

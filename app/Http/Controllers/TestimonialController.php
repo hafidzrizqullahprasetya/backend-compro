@@ -132,6 +132,10 @@ class TestimonialController extends Controller
         ]);
 
         $testimonial = Testimonial::create($request->all());
+
+        // Clear landing page cache
+        cache()->forget('landing_page_data');
+
         return response()->json([
             "message" => "Testimonial created successfully",
             "data" => $testimonial
@@ -215,6 +219,10 @@ class TestimonialController extends Controller
         $testimonial = Testimonial::find($id);
         if ($testimonial) {
             $testimonial->update($request->all());
+
+            // Clear landing page cache
+            cache()->forget('landing_page_data');
+
             return response()->json([
                 "message" => "Testimonial updated successfully",
                 "data" => $testimonial
@@ -267,6 +275,10 @@ class TestimonialController extends Controller
         $testimonial = Testimonial::find($id);
         if ($testimonial) {
             $testimonial->delete();
+
+            // Clear landing page cache
+            cache()->forget('landing_page_data');
+
             return response()->json(['message' => 'Testimonial deleted successfully']);
         } else {
             return response()->json(['message' => 'Testimonial not found'], 404);

@@ -4,10 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
-
+use App\Traits\StorageImageTrait;
+use App\Traits\ClearsLandingPageCache;
 
 class Product extends Model
 {
+    use StorageImageTrait, ClearsLandingPageCache;
+    
     protected $fillable = ['client_id','name', 'description', 'image_path', 'price', 'images'];
     protected $appends = ['image_url', 'image_urls'];
     protected $casts = [
@@ -19,21 +22,17 @@ class Product extends Model
         return $this->belongsTo(OurClient::class, 'client_id');
     }
 
-    public function imageUrl(): Attribute{
+    public function imageUrl(): Attribute
+    {
         return Attribute::make(
-            get: fn() => $this->image_path ? asset('storage/'. $this->image_path) : null,
+            get: fn() => $this->buildImageUrl($this->image_path),
         );
     }
 
     public function getImageUrlsAttribute()
     {
         if ($this->images && is_array($this->images)) {
-            return array_map(function ($path) {
-                if (filter_var($path, FILTER_VALIDATE_URL)) {
-                    return $path;
-                }
-                return asset('storage/' . $path);
-            }, $this->images);
+            return array_map(fn($path) => $this->buildImageUrl($path), $this->images);
         }
         return [];
     }

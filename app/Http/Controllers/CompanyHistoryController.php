@@ -4,10 +4,16 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\CompanyHistory;
-use Illuminate\Support\Facades\Storage;
+use App\Services\StorageService;
 
 class CompanyHistoryController extends Controller
 {
+    protected $storageService;
+
+    public function __construct(StorageService $storageService)
+    {
+        $this->storageService = $storageService;
+    }
     public function index()
     {
         $histories = CompanyHistory::orderBy('tahun', 'asc')->get();
@@ -37,14 +43,13 @@ class CompanyHistoryController extends Controller
 
         $imagePath = null;
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('company-histories', 'public');
+            $imagePath = $this->storageService->upload($request->file('image'), 'company-histories');
         }
 
         $imagesPaths = [];
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $file) {
-                $path = $file->store('company-histories', 'public');
-                $imagesPaths[] = $path;
+                $imagesPaths[] = $this->storageService->upload($file, 'company-histories');
             }
         }
 
@@ -83,11 +88,10 @@ class CompanyHistoryController extends Controller
         if ($request->hasFile('image')) {
             // Delete old image if exists
             if ($history->image_path) {
-                Storage::disk('public')->delete($history->image_path);
+                $this->storageService->delete($history->image_path);
             }
 
-            $imagePath = $request->file('image')->store('company-histories', 'public');
-            $history->image_path = $imagePath;
+            $history->image_path = $this->storageService->upload($request->file('image'), 'company-histories');
         }
 
         // Handle multiple images upload
@@ -96,8 +100,7 @@ class CompanyHistoryController extends Controller
             $newImages = [];
 
             foreach ($request->file('images') as $file) {
-                $path = $file->store('company-histories', 'public');
-                $newImages[] = $path;
+                $newImages[] = $this->storageService->upload($file, 'company-histories');
             }
 
             // Merge with existing images
@@ -115,9 +118,7 @@ class CompanyHistoryController extends Controller
                 });
 
                 // Delete file from storage
-                if (Storage::disk('public')->exists($pathToDelete)) {
-                    Storage::disk('public')->delete($pathToDelete);
-                }
+                $this->storageService->delete($pathToDelete);
             }
 
             $history->images = array_values($existingImages); // Re-index array
@@ -142,7 +143,14 @@ class CompanyHistoryController extends Controller
 
         // Delete image if exists
         if ($history->image_path) {
-            Storage::disk('public')->delete($history->image_path);
+            $this->storageService->delete($history->image_path);
+        }
+
+        // Delete additional images if exist
+        if ($history->images && is_array($history->images)) {
+            foreach ($history->images as $path) {
+                $this->storageService->delete($path);
+            }
         }
 
         $history->delete();
